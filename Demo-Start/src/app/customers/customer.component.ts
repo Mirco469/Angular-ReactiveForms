@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { NgForm } from '@angular/forms';
+import { FormBuilder, FormGroup } from '@angular/forms';
 
 import { Customer } from './customer';
 
@@ -9,15 +9,37 @@ import { Customer } from './customer';
   styleUrls: ['./customer.component.css']
 })
 export class CustomerComponent implements OnInit {
+  customerForm: FormGroup;
   customer = new Customer();
 
-  constructor() { }
+  constructor(private fb: FormBuilder) { }
 
   ngOnInit(): void {
+    this.customerForm = this.fb.group({
+      firstName: [{value: '', disabled: false}], // To set the field disabled
+      lastName: '',
+      email: '',
+      sendCatalog: true
+    });
   }
 
-  save(customerForm: NgForm): void {
-    console.log(customerForm.form);
-    console.log('Saved: ' + JSON.stringify(customerForm.value));
+  populateTestData() {
+    this.customerForm.patchValue({
+      firstName: 'Jack',
+      lastName: 'Harkness',
+      sendCatalog: false
+    });
+    // OR if we want to set all value of the form control
+    /*this.customerForm.setValue({
+      firstName: 'Jack',
+      lastName: 'Harkness',
+      email: 'jack@torchwood.com',
+      sendCatalog: false
+    });*/
+  }
+
+  save(): void {
+    console.log(this.customerForm);
+    console.log('Saved: ' + JSON.stringify(this.customerForm.value));
   }
 }
