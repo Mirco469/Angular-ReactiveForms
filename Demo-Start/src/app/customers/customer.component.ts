@@ -1,7 +1,31 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 
 import { Customer } from './customer';
+
+// This validator attach the error to the form group not the single form controller
+function emailMatcher(c: AbstractControl): { [key: string]: boolean } | null {
+  const emailControl = c.get('email');
+  const confirmControl = c.get('confirmEmail');
+
+  if (emailControl.pristine || confirmControl.pristine) {
+    return null;
+  }
+
+  if (emailControl.value === confirmControl.value) {
+    return null;
+  }
+  return { match: true };
+}
+
+function ratingRange(min: number, max: number): ValidatorFn {
+  return (c: AbstractControl): { [key: string]: boolean } | null => {
+    if (c.value !== null && (isNaN(c.value) || c.value < min || c.value > max)) {
+      return { range: true }; // not valid
+    }
+    return null; // all is good
+  };
+}
 
 @Component({
   selector: 'app-customer',
@@ -16,9 +40,15 @@ export class CustomerComponent implements OnInit {
 
   ngOnInit(): void {
     this.customerForm = this.fb.group({
-      firstName: [{value: '', disabled: false}], // To set the field disabled
-      lastName: '',
-      email: '',
+      firstName: [{value: '', disabled: false}, [Validators.required, Validators.minLength(3)]], // To set the field disabled
+      lastName: ['', [Validators.required, Validators.maxLength(50)]],
+      emailGroup: this.fb.group({
+        email: ['', [Validators.required, Validators.email]],
+        confirmEmail: ['', Validators.required]
+      }, { validators: emailMatcher }),
+      phone: '',
+      notification: 'email',
+      rating: [null, ratingRange(1, 5)],
       sendCatalog: true
     });
   }
@@ -29,7 +59,7 @@ export class CustomerComponent implements OnInit {
       lastName: 'Harkness',
       sendCatalog: false
     });
-    // OR if we want to set all value of the form control
+    // OR if we want to set all the value of the form control (here some field are missing because the form group was updated later)
     /*this.customerForm.setValue({
       firstName: 'Jack',
       lastName: 'Harkness',
@@ -41,5 +71,16 @@ export class CustomerComponent implements OnInit {
   save(): void {
     console.log(this.customerForm);
     console.log('Saved: ' + JSON.stringify(this.customerForm.value));
+  }
+
+  // Set validator dynamically
+  setNotification(notifyVia: string): void {
+    const phoneControl = this.customerForm.get('phone');
+    if (notifyVia === 'text') {
+      phoneControl.setValidators(Validators.required); // If user selected notification via text then the phone is required
+    } else {
+      phoneControl.clearValidators();
+    }
+    phoneControl.updateValueAndValidity(); // Reevaluate the content of the input with the new validators just added/removed
   }
 }
